@@ -15,7 +15,7 @@ resource "aws_subnet" "webservers" {
   count             = "${length(data.aws_availability_zones.azs.names)}"
   vpc_id            = "${aws_vpc.javahome_vpc.id}"
   availability_zone = "${data.aws_availability_zones.azs.names[count.index]}"
-  cidr_block = "${element(var.subets_cidr,count.index)}"
+  cidr_block        = "${element(var.subets_cidr,count.index)}"
 
   tags {
     Name        = "Webservers"
@@ -26,6 +26,7 @@ resource "aws_subnet" "webservers" {
 # Setup IGW for webservers subent
 resource "aws_internet_gateway" "igw" {
   vpc_id = "${aws_vpc.javahome_vpc.id}"
+
   tags {
     Name = "JavaHomeIGW"
   }
@@ -49,7 +50,7 @@ resource "aws_route_table" "webservers_rt" {
 # Associate subnets with webservers_rt
 
 resource "aws_route_table_association" "a" {
-  count = "${length(aws_subnet.webservers.*.id)}"
+  count          = "${length(aws_subnet.webservers.*.id)}"
   subnet_id      = "${element(aws_subnet.webservers.*.id,count.index)}"
   route_table_id = "${aws_route_table.webservers_rt.id}"
 }
@@ -76,20 +77,23 @@ resource "aws_security_group" "webservers_sg" {
   }
 
   egress {
-    from_port       = 0
-    to_port         = 0
-    protocol        = "-1"
-    cidr_blocks     = ["0.0.0.0/0"]
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
 # Add EC2 instances to public subnets
 resource "aws_instance" "webservers" {
-  count = "${length(aws_subnet.webservers.*.id)}"
-  vpc_security_group_ids = ["${aws_security_group.webservers_sg.id}"]
-  ami           = "${var.ec2_ami}"
-  instance_type = "t2.micro"
-  subnet_id      = "${element(aws_subnet.webservers.*.id,count.index)}"
+  count                       = "${length(aws_subnet.webservers.*.id)}"
+  vpc_security_group_ids      = ["${aws_security_group.webservers_sg.id}"]
+  ami                         = "${var.ec2_ami}"
+  instance_type               = "t2.micro"
+  subnet_id                   = "${element(aws_subnet.webservers.*.id,count.index)}"
+  user_data                   = "${file("scripts/user_data.sh")}"
+  associate_public_ip_address = true
+
   tags {
     Name = "Webserver-${count.index + 1}"
   }
